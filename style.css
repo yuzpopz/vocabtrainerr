@@ -920,7 +920,7 @@ p {
 }
 
 .word-table td {
-  padding: 11px 14px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--cream-dark);
   vertical-align: middle;
 }
@@ -1292,7 +1292,7 @@ textarea.input {
 
 .word-table th:nth-child(1),
 .word-table td:nth-child(1) {
-  width: 35%;
+  width: 30%;
 }
 
 .word-table th:nth-child(2),
@@ -1307,7 +1307,7 @@ textarea.input {
 
 .word-table th:nth-child(4),
 .word-table td:nth-child(4) {
-  width: 15%;
+  width: 20%;
 }
 
 .word-table td:nth-child(4) {
