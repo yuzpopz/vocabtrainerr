@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocabTrainerr – Your Vocabulary Journey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,900;1,7..72,300;1,7..72,400&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icons/icon-512.png" type="image/png">
+</head>
+
+<body>
+
+  <!-- RIBBON -->
+  <nav class="ribbon">
+    <div class="ribbon-brand">
+      <span class="ribbon-brand-name">VocabTrainerr</span>
+      <span class="ribbon-brand-dot">.</span>
+    </div>
+    <div class="ribbon-tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+      <div class="tab" data-tab="learn">Learn</div>
+      <div class="tab" data-tab="manage">Manage</div>
+      <div class="tab-indicator"></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ── OVERVIEW PANEL ── -->
+    <div class="panel active" id="panel-overview">
+      <div class="overview-hero">
+        <p class="q-pos" style="margin-bottom:6px">Your vocabulary journey</p>
+        <h1 id="greeting-text">Welcome back.</h1>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card mastered">
+          <div class="stat-num" id="stat-mastered">0</div>
+          <div class="stat-label">Mastered</div>
+        </div>
+        <div class="stat-card proficient">
+          <div class="stat-num" id="stat-proficient">0</div>
+          <div class="stat-label">Proficient</div>
+        </div>
+        <div class="stat-card attempted">
+          <div class="stat-num" id="stat-attempted">0</div>
+          <div class="stat-label">Attempted</div>
+        </div>
+        <div class="stat-card not-attempted">
+          <div class="stat-num" id="stat-new">0</div>
+          <div class="stat-label">Not yet seen</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap card">
+        <h3>Overall Progress</h3>
+        <div class="progress-bar-bg">
+          <div class="progress-seg mastered" id="prog-mastered" style="width:0%"></div>
+          <div class="progress-seg proficient" id="prog-proficient" style="width:0%"></div>
+          <div class="progress-seg attempted" id="prog-attempted" style="width:0%"></div>
+        </div>
+        <div class="progress-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--accent)"></div>Mastered (≥&#8201;80% avg)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--gold)"></div>Proficient (≥&#8201;50%)
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#7B9CC4"></div>Attempted
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--cream-border)"></div>Not yet seen
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px">
+        <div class="section-header">
+          <h2>Past Sessions</h2>
+          <div class="start-btn-wrap">
+            <button class="btn btn-primary" onclick="startSession()">Start new session</button>
+            <div class="insufficient-tip" id="insufficient-tip">
+              <div class="tip-inner">
+                <span class="material-symbols-outlined">info</span>
+                <span>Add at least 6 words in the <strong>Manage</strong> tab to begin a session.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sessions-list" id="sessions-list">
+          <div class="empty">
+            <div class="empty-icon"><span class="material-symbols-outlined">book_ribbon</span></div>
+            <p>No sessions yet. Start learning!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LEARN PANEL ── -->
+    <div class="panel" id="panel-learn">
+      <div id="learn-idle" class="learn-idle">
+        <p class="q-pos">Session of 6 words</p>
+        <h1>Ready to learn?</h1>
+        <p>Each session presents six carefully chosen words. Words you find difficult come up more often, while mastered words are reviewed occasionally.</p>
+        <button class="btn btn-primary" onclick="startSession()">Begin session</button>
+      </div>
+      <div id="learn-active" style="display:none">
+        <div class="progress-indicator" id="session-pips"></div>
+        <div class="question-card" id="question-card">
+          <div class="q-pos" id="q-pos"></div>
+          <div class="q-word" id="q-word"></div>
+          <div class="q-prompt">Which definition best matches this word?</div>
+        </div>
+        <div class="options-list" id="options-list"></div>
+        <div id="result-area"></div>
+        <div class="hint-box" id="hint-box" style="margin-top:16px">
+          <div class="hint-box-header">
+            <span class="hint-box-label">Example sentence</span>
+            <button class="btn btn-ghost" id="hint-toggle" onclick="toggleHint()" style="font-size:0.78rem">Show</button>
+          </div>
+          <div id="hint-content" style="display:none"></div>
+        </div>
+        <div class="learn-actions">
+          <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()" style="display:none">Next word →</button>
+        </div>
+      </div>
+      <div id="learn-complete" style="display:none" class="session-complete">
+        <div class="complete-icon"><span class="material-symbols-outlined" style="font-size:2rem;color:var(--accent)">book_ribbon</span></div>
+        <h1>Session complete</h1>
+        <p style="margin-top:8px">You've finished this round.</p>
+        <div class="complete-stats" id="complete-stats"></div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
+          <button class="btn btn-secondary" onclick="switchTab('overview')">View overview</button>
+          <button class="btn btn-primary" onclick="startSession()">Another session</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MANAGE PANEL ── -->
+    <div class="panel" id="panel-manage">
+      <div class="section-header" style="margin-bottom:20px">
+        <div>
+          <p class="q-pos" style="margin-bottom:4px">Word bank</p>
+          <h2 style="font-size:1.5rem;margin-top:-6px;">Manage Words</h2>
+        </div>
+        <div class="manage-actions">
+          <button class="btn btn-secondary" onclick="triggerImport()">
+            <span class="material-symbols-outlined">folder_open</span> Import JSON
+          </button>
+          <button class="btn btn-primary" onclick="exportJSON()">
+            <span class="material-symbols-outlined">file_save</span> Download JSON
+          </button>
+          <input type="file" id="file-input" accept=".json" onchange="importJSON(event)" style="display:none">
+        </div>
+      </div>
+
+      <!-- Add word button aligned with word bank -->
+      <button class="btn btn-secondary" onclick="toggleAddForm()" style="width:100%;justify-content:center;margin-top:5px;margin-bottom:25px;gap:8px">
+        <span class="material-symbols-outlined">add</span> Add Word Entry
+      </button>
+
+      <!-- Word table -->
+      <div class="card">
+        <div class="word-search">
+          <div style="position:relative;width:100%">
+            <span class="material-symbols-outlined" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-muted)">search</span>
+            <input class="input" type="text" placeholder="Search words&#8202;.&#8202;.&#8202;." oninput="filterTable(this.value)" style="padding-left:40px">
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="word-table" id="word-table">
+            <thead>
+              <tr>
+                <th>Word</th>
+                <th>Part of speech</th>
+                <th>Mastery</th>
+                <th>Times seen</th>
+              </tr>
+            </thead>
+            <tbody id="word-table-body"></tbody>
+          </table>
+        </div>
+        <div id="word-count-display" class="word-count-footer">Total words: 0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Add Word Overlay -->
+  <div class="add-form-overlay" id="add-form-overlay" onclick="handleAddFormOverlayClick(event)">
+    <div class="add-form-inner" id="add-form-inner">
+      <button class="overlay-close-btn" onclick="toggleAddForm()" title="Close">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+      <h2 style="margin-bottom:4px;padding-right:40px">Add a new word</h2>
+      <p style="margin-bottom:24px;font-size:0.84rem">Follow the formatting guidelines below carefully.</p>
+
+      <div class="form-section">
+        <div class="form-row">
+          <label class="form-label">Word</label>
+          <input class="input" type="text" id="new-word" placeholder="e.g. ephemeral" spellcheck="true" oninput="clearFieldError('new-word')">
+          <div class="form-hint">Lowercase. The word exactly as it would appear in a dictionary.</div>
+          <div class="field-error-msg" id="err-word"></div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Part of speech</label>
+          <select class="input" id="new-pos" spellcheck="true" onchange="clearFieldError('new-pos')">
+            <option value="">Select&#8202;.&#8202;.&#8202;.</option>
+            <option value="adjective">adjective</option>
+            <option value="adverb">adverb</option>
+            <option value="conjunction">conjunction</option>
+            <option value="interjection">interjection</option>
+            <option value="noun">noun</option>
+            <option value="preposition">preposition</option>
+            <option value="pronoun">pronoun</option>
+            <option value="verb">verb</option>
+          </select>
+          <div class="field-error-msg" id="err-pos"></div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Example sentence</label>
+          <textarea class="input" id="new-example" placeholder="e.g. The **ephemeral** beauty of cherry blossoms makes them all the more precious." spellcheck="true" oninput="clearFieldError('new-example')"></textarea>
+          <div class="form-hint">Enclose the used word in <strong>double asterisks</strong> like <code>**word**</code>. Write a natural, full sentence.</div>
+          <div class="field-error-msg" id="err-example"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-section">
+        <h3>Definitions</h3>
+        <div class="form-row" style="margin-top:12px">
+          <label class="form-label">Correct definition</label>
+          <textarea class="input" id="new-def-correct" placeholder="to last for only a very short time / fleeting or transient in nature" spellcheck="true" oninput="clearFieldError('new-def-correct')"></textarea>
+          <div class="form-hint">Start in lowercase. No full stop at the end. Multiple meanings can be separated with "<code>/</code>", though try to avoid. Be precise.</div>
+          <div class="field-error-msg" id="err-def-correct"></div>
+        </div>
+        <div id="incorrect-defs">
+          <label class="form-label" style="margin-bottom:8px">Incorrect definitions (4 required)</label>
+          <div class="form-row" id="inc-rows"></div>
+        </div>
+        <div class="field-error-msg" id="err-inc-defs"></div>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-secondary" onclick="toggleAddForm()">Cancel</button>
+        <button class="btn btn-primary" onclick="addWord()">Add word</button>
+      </div>
+      <div class="download-remind" style="margin-top:22px">
+        <span><strong>Remember:</strong> After adding words, download an updated JSON file so your entries are preserved. Use the <span class="material-symbols-outlined" style="color:var(--gold);margin-bottom:3px;margin-right:3px;">file_save</span><strong>Download JSON</strong> button.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session detail modal -->
+  <div id="session-modal" class="session-detail-modal" style="display:none" onclick="closeModal(event)">
+    <div class="session-detail-inner" id="session-modal-inner"></div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
