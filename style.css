@@ -305,6 +305,11 @@ p {
   padding: 20px 18px;
   position: relative;
   overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 18px rgba(26, 23, 20, 0.10), 0 1px 4px rgba(26, 23, 20, 0.06);
 }
 
 .stat-card::before {
@@ -315,6 +320,16 @@ p {
   right: 0;
   height: 8.5px;
   border-radius: var(--radius) var(--radius) 0 0;
+  transform-origin: left center;
+}
+
+.stat-card:hover::before {
+  animation: statBarSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes statBarSlideIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
 .stat-card.mastered::before {
@@ -374,6 +389,11 @@ p {
 /* Progress bar */
 .progress-wrap {
   margin-bottom: 32px;
+  transition: box-shadow var(--transition);
+}
+
+.progress-wrap:hover {
+  box-shadow: 0 4px 18px rgba(26, 23, 20, 0.10), 0 1px 4px rgba(26, 23, 20, 0.06);
 }
 
 .progress-bar-bg {

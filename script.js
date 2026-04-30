@@ -789,13 +789,16 @@ function triggerImport() {
 }
 
 function exportJSON() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
   const blob = new Blob([JSON.stringify(appData, null, 2)], {
     type: 'application/json'
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'vocabtrainerr.json';
+  a.download = `vocabtrainerr_${stamp}.json`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('JSON file downloaded successfully.');
