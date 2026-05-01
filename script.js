@@ -522,7 +522,7 @@ function showSessionDetail(s) {
         <h3 style="margin-bottom:4px">Session details</h3>
         <h2>${dateStr}</h2>
       </div>
-      <button class="btn btn-ghost" onclick="document.getElementById('session-modal').style.display='none'" style="padding:6px"><span class="material-symbols-outlined">close</span></button>
+      <button class="overlay-close-btn" onclick="document.getElementById('session-modal').style.display='none'" title="Close"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
     </div>
     <div class="session-word-list">${rows}</div>
   `;
@@ -554,29 +554,376 @@ function renderWordTable(filter = '') {
     }
   }
   if (words.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-muted);padding:32px">No words found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-muted);padding:32px">No words found.</td></tr>';
     return;
   }
-  tbody.innerHTML = words.map(w => {
+  tbody.innerHTML = '';
+  words.forEach(w => {
     const level = masteryLevel(w.word);
     const m = getMastery(w.word);
-    const badgeLabels = {
-      mastered: 'Mastered',
-      proficient: 'Proficient',
-      attempted: 'Attempted',
-      new: 'New'
-    };
-    return `<tr>
+    const badgeLabels = { mastered: 'Mastered', proficient: 'Proficient', attempted: 'Attempted', new: 'New' };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
       <td><span class="word-italic">${w.word}</span></td>
       <td><span class="pos-tag pos-${w.part_of_speech}">${w.part_of_speech}</span></td>
       <td><span class="mastery-badge ${level}">${badgeLabels[level]}</span></td>
-      <td style="color:var(--ink-muted);font-size:0.82rem">${m.times_seen}</td>
-    </tr>`;
-  }).join('');
+      <td style="color:var(--ink-muted);font-size:0.82rem;padding-left:16px">${m.times_seen}</td>
+      <td>
+        <div class="row-actions">
+          <button class="row-menu-btn" title="More options" data-word="${w.word}">
+            <span class="material-symbols-outlined" style="font-size:18px;font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 200, 'opsz' 24;">more_horiz</span>
+          </button>
+        </div>
+      </td>
+    `;
+    // Click anywhere on row → edit (except menu button)
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.row-menu-btn') || e.target.closest('.row-popup')) return;
+      openEditOverlay(w.word);
+    });
+    tr.style.cursor = 'pointer';
+    // Three-dots button
+    const menuBtn = tr.querySelector('.row-menu-btn');
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleRowPopup(menuBtn, w.word);
+    });
+    tbody.appendChild(tr);
+  });
 }
 
 function filterTable(val) {
   renderWordTable(val);
+}
+
+// ─────────────────────────────────────────────
+// ROW POPUP MENU
+// ─────────────────────────────────────────────
+
+let activePopup = null;
+let activePopupBtn = null;
+
+function closeAllPopups() {
+  if (activePopup) {
+    activePopup.remove();
+    activePopup = null;
+  }
+  if (activePopupBtn) {
+    activePopupBtn.closest('tr')?.classList.remove('row-popup-open');
+    activePopupBtn = null;
+  }
+}
+
+document.addEventListener('click', () => closeAllPopups());
+
+// Reposition popup based on current scroll + button position
+function repositionPopup(popup, btn) {
+  const rect = btn.getBoundingClientRect();
+  const popupWidth = popup.offsetWidth || 148;
+  const popupHeight = popup.offsetHeight || 80;
+
+  // Horizontal: align left edge of popup with button, clamp to viewport
+  let left = rect.left + window.scrollX;
+  if (rect.left + popupWidth > window.innerWidth - 8) {
+    left = window.scrollX + window.innerWidth - popupWidth - 8;
+  }
+
+  // Vertical: open below by default, flip above if not enough room
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  let top;
+  if (spaceBelow >= popupHeight + 8 || spaceBelow >= spaceAbove) {
+    top = rect.bottom + window.scrollY + 4;
+  } else {
+    top = rect.top + window.scrollY - popupHeight - 4;
+  }
+
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+}
+
+function toggleRowPopup(btn, wordKey) {
+  // Toggle: if clicking the same button while popup is open, close it
+  if (activePopupBtn === btn) {
+    closeAllPopups();
+    return;
+  }
+
+  closeAllPopups();
+
+  const popup = document.createElement('div');
+  popup.className = 'row-popup';
+  popup.innerHTML = `
+    <button class="row-popup-item edit" data-action="edit">
+      <span class="material-symbols-outlined" style="font-size:16px">edit</span> Edit word
+    </button>
+    <button class="row-popup-item danger" data-action="delete">
+      <span class="material-symbols-outlined" style="font-size:16px">delete</span> Delete word
+    </button>
+  `;
+  popup.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = e.target.closest('[data-action]');
+    if (!item) return;
+    closeAllPopups();
+    if (item.dataset.action === 'edit') openEditOverlay(wordKey);
+    else if (item.dataset.action === 'delete') deleteWord(wordKey);
+  });
+
+  // Use absolute positioning (scrolls with page) instead of fixed
+  popup.style.position = 'absolute';
+  document.body.appendChild(popup);
+
+  // Position after appending so offsetHeight is available
+  repositionPopup(popup, btn);
+
+  // Mark the row as having an open popup (keeps highlight + shows dots)
+  btn.closest('tr')?.classList.add('row-popup-open');
+
+  activePopup = popup;
+  activePopupBtn = btn;
+
+  // Reposition on scroll so it follows the page
+  const onScroll = () => {
+    if (!activePopup) {
+      window.removeEventListener('scroll', onScroll, true);
+      return;
+    }
+    repositionPopup(activePopup, btn);
+  };
+  window.addEventListener('scroll', onScroll, true);
+}
+
+// ─────────────────────────────────────────────
+// DELETE WORD (with undo toast)
+// ─────────────────────────────────────────────
+
+function deleteWord(wordKey) {
+  const idx = appData.words.findIndex(w => w.word === wordKey);
+  if (idx === -1) return;
+  const removed = appData.words[idx];
+  const removedMastery = appData.mastery[wordKey];
+
+  // Delete immediately
+  appData.words.splice(idx, 1);
+  delete appData.mastery[wordKey];
+  saveToStorage();
+  renderWordTable();
+  renderOverview();
+
+  // Show undo toast — undo re-inserts
+  showUndoToast(`Word "${wordKey}" deleted.`, () => {
+    // Undo: restore at original position
+    appData.words.splice(idx, 0, removed);
+    if (removedMastery) appData.mastery[wordKey] = removedMastery;
+    saveToStorage();
+    renderWordTable();
+    renderOverview();
+  }, () => {
+    // Confirmed: already deleted, nothing to do
+  });
+}
+
+function showUndoToast(msg, onUndo, onConfirm) {
+  const container = document.getElementById('toast-container');
+  const duration = 5000;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+
+  toast.innerHTML = `
+    <div class="toast-header">
+      <span class="toast-msg">${msg}</span>
+      <button class="toast-undo">Undo</button>
+    </div>
+    <div class="toast-timer" style="animation-duration:${duration}ms"></div>
+  `;
+
+  // Inject keyframes so the timer bar animation runs
+  const style = document.createElement('style');
+  style.textContent = `@keyframes toastTimer { from { width: 100%; } to { width: 0%; } }`;
+  document.head.appendChild(style);
+
+  let undone = false;
+  let timer = null;
+
+  const undoBtn = toast.querySelector('.toast-undo');
+  undoBtn.addEventListener('click', () => {
+    undone = true;
+    clearTimeout(timer);
+    onUndo();
+    dismissToast(toast);
+  });
+
+  container.appendChild(toast);
+
+  timer = setTimeout(() => {
+    if (!undone) {
+      onConfirm();
+    }
+    dismissToast(toast);
+  }, duration);
+}
+
+// ─────────────────────────────────────────────
+// EDIT WORD OVERLAY
+// ─────────────────────────────────────────────
+
+let editingWordKey = null;
+
+function openEditOverlay(wordKey) {
+  const wordObj = appData.words.find(w => w.word === wordKey);
+  if (!wordObj) return;
+  editingWordKey = wordKey;
+
+  const overlay = document.getElementById('add-form-overlay');
+  const inner = document.getElementById('add-form-inner');
+
+  // Switch to edit mode
+  inner.classList.add('edit-overlay-mode');
+
+  // Update heading
+  const heading = inner.querySelector('h2');
+  heading.textContent = `Edit the word “${wordObj.word}”`;
+  heading.style = "margin-bottom:20px";
+
+  // Update close button handler
+  const closeBtn = inner.querySelector('.overlay-close-btn');
+  closeBtn.onclick = closeEditOverlay;
+
+  // Update backdrop click
+  overlay.onclick = (e) => { if (e.target === overlay) closeEditOverlay(); };
+
+  // Build inc-def inputs
+  const incRows = document.getElementById('inc-rows');
+  incRows.innerHTML = '';
+  for (let i = 1; i <= 4; i++) {
+    incRows.innerHTML += `<div style="margin-bottom:9px">
+      <input class="input" type="text" id="inc-def-${i}" placeholder="Incorrect definition ${i}${ellipsis}" oninput="handleIncDefInput(${i})">
+    </div>`;
+  }
+
+  // Pre-fill fields
+  document.getElementById('new-word').value = wordObj.word;
+  document.getElementById('new-pos').value = wordObj.part_of_speech;
+  document.getElementById('new-example').value = wordObj.example;
+
+  const correctDef = wordObj.definitions.find(d => d.is_correct);
+  const incDefs = wordObj.definitions.filter(d => !d.is_correct);
+  document.getElementById('new-def-correct').value = correctDef ? correctDef.definition : '';
+  incDefs.forEach((d, i) => {
+    const el = document.getElementById(`inc-def-${i + 1}`);
+    if (el) el.value = d.definition;
+  });
+
+  // Clear errors
+  ['new-word', 'new-pos', 'new-example', 'new-def-correct'].forEach(id => clearFieldError(id));
+  document.getElementById('err-inc-defs').classList.remove('visible');
+
+  // Swap "Add word" → "Update" button
+  const addBtn = inner.querySelector('button.btn-primary[onclick="addWord()"]');
+  if (addBtn) {
+    addBtn.removeAttribute('onclick');
+    addBtn.textContent = 'Update';
+    addBtn.onclick = updateWord;
+  }
+
+  overlay.classList.add('open');
+  addFormOpen = true;
+}
+
+function closeEditOverlay() {
+  const overlay = document.getElementById('add-form-overlay');
+  const inner = document.getElementById('add-form-inner');
+
+  overlay.classList.remove('open');
+  inner.classList.remove('edit-overlay-mode');
+  addFormOpen = false;
+  editingWordKey = null;
+
+  // Restore heading
+  inner.querySelector('h2').textContent = 'Add a new word';
+  inner.querySelector('h2').style = "margin-bottom:4px";
+
+  // Restore close btn
+  inner.querySelector('.overlay-close-btn').onclick = toggleAddForm;
+  overlay.onclick = handleAddFormOverlayClick;
+
+  // Restore Add button
+  const updateBtn = inner.querySelector('button.btn-primary');
+  if (updateBtn) {
+    updateBtn.textContent = 'Add word';
+    updateBtn.onclick = null;
+    updateBtn.setAttribute('onclick', 'addWord()');
+  }
+
+  resetAddForm();
+}
+
+function updateWord() {
+  const word = document.getElementById('new-word').value.trim();
+  const pos = document.getElementById('new-pos').value;
+  const example = document.getElementById('new-example').value.trim();
+  const correctDef = document.getElementById('new-def-correct').value.trim();
+  const incDefs = [1, 2, 3, 4].map(i => document.getElementById(`inc-def-${i}`)?.value.trim() || '');
+
+  // Clear all errors first
+  ['new-word', 'new-pos', 'new-example', 'new-def-correct'].forEach(id => clearFieldError(id));
+  document.getElementById('err-inc-defs').textContent = '';
+  document.getElementById('err-inc-defs').classList.remove('visible');
+
+  const matches = example.match(/\*\*/g) || [];
+  let hasError = false;
+  if (!word) { setFieldError('new-word', 'Word is required.'); hasError = true; }
+  // Allow same word (editing in place), but disallow collision with OTHER words
+  const collision = appData.words.find(w => w.word.toLowerCase() === word.toLowerCase() && w.word !== editingWordKey);
+  if (collision) { setFieldError('new-word', 'This word already exists.'); hasError = true; }
+  if (!pos) { setFieldError('new-pos', 'Part of speech is required.'); hasError = true; }
+  if (!example) {
+    setFieldError('new-example', 'Example sentence is required.');
+    hasError = true;
+  } else if (matches.length !== 2) {
+    setFieldError('new-example', 'Enclose the word in **double asterisks** as shown in the example.');
+    hasError = true;
+  }
+  if (!correctDef) { setFieldError('new-def-correct', 'Correct definition is required.'); hasError = true; }
+  if (incDefs.some(d => !d)) {
+    incDefs.forEach((d, i) => {
+      if (!d) {
+        const fieldEl = document.getElementById(`inc-def-${i + 1}`);
+        if (fieldEl) fieldEl.classList.add('field-error');
+      }
+    });
+    updateIncDefsGroupError();
+    hasError = true;
+  }
+  if (hasError) return;
+
+  const idx = appData.words.findIndex(w => w.word === editingWordKey);
+  if (idx === -1) return;
+
+  const updated = {
+    word: word.toLowerCase(),
+    part_of_speech: pos,
+    example,
+    definitions: [
+      { definition: correctDef, is_correct: true },
+      ...incDefs.map(d => ({ definition: d, is_correct: false }))
+    ]
+  };
+
+  // If word key changed, migrate mastery
+  if (updated.word !== editingWordKey) {
+    appData.mastery[updated.word] = appData.mastery[editingWordKey];
+    delete appData.mastery[editingWordKey];
+  }
+
+  appData.words[idx] = updated;
+  saveToStorage();
+  closeEditOverlay();
+  renderWordTable();
+  renderOverview();
+  showToast(`Word "${updated.word}" updated successfully.`);
 }
 
 let addFormOpen = false;
