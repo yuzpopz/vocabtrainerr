@@ -306,11 +306,12 @@ p {
   padding: 20px 18px;
   position: relative;
   overflow: hidden;
-  transition: box-shadow var(--transition);
+  transition: box-shadow var(--transition), border-radius var(--transition);
 }
 
 .stat-card:hover {
   box-shadow: 0 4px 18px rgba(26, 23, 20, 0.10), 0 1px 4px rgba(26, 23, 20, 0.06);
+  border-radius: var(--radius-sm);
 }
 
 .stat-card::before {
@@ -320,7 +321,6 @@ p {
   left: 0;
   right: 0;
   height: 8.5px;
-  border-radius: var(--radius) var(--radius) 0 0;
   transform-origin: left center;
 }
 
@@ -1011,12 +1011,6 @@ p {
   pointer-events: all;
 }
 
-/* Keep row subtly highlighted while its popup is open.
-   The lighter tint (#F6F4F0, between --cream #FAF8F4 and hover --cream)
-   only settles in once the mouse leaves — the transition-delay on
-   background kicks in after hover ends, while hover itself overrides
-   straight to --cream (no delay), so during hover you still see the
-   normal hover colour. */
 .word-table tbody tr.row-popup-open td {
   background: #fcfaf6;
   border-bottom-color: transparent;
